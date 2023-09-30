@@ -1,32 +1,53 @@
-﻿// ReSharper disable UnusedMember.Global
+﻿// ReSharper disable UnusedType.Global
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable UnusedMember.Global
+#pragma warning disable CS1591
 
-using System.Text.Json.Serialization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace HamedStack.Functional;
 
-public readonly struct Option<T> where T : notnull
+public readonly struct Option<T> : IEquatable<Option<T>>
 {
-    public Option(T? value)
-    {
-        Value = value;
-    }
-    [JsonIgnore]
-    public static Option<T> None => new(default);
+    private readonly T? _value;
 
-    public bool IsSome => Value is not null;
+    private Option(T? value)
+    {
+        _value = value;
+    }
+
     public bool IsNone => !IsSome;
-    internal T? Value { get; }
 
-    public static Option<TValue> Combine<TValue>(params Option<TValue>[] options) where TValue : notnull
+    public bool IsSome => _value is not null;
+
+    public static Option<T> IfSome(bool condition, T value)
     {
-        return options.Any(option => option.IsNone) ? Option<TValue>.None : options.Last();
+        return condition ? Some(value!) : None();
     }
 
-    public static Option<T> Some(T value) => new Option<T>(value);
-
-    public static implicit operator Option<T>(T value)
+    public static Option<T> IfSome(Func<T, bool> predicate, T value)
     {
-        return new(value);
+        return predicate(value) ? Some(value!) : None();
+    }
+
+    public static Task<Option<T>> IfSomeAsync(bool condition, T value)
+    {
+        return Task.FromResult(condition ? Some(value!) : None());
+    }
+
+    public static async Task<Option<T>> IfSomeAsync(Func<T, Task<bool>> predicate, T value)
+    {
+        return await predicate(value) ? Some(value!) : None();
+    }
+
+    public static implicit operator Option<T>(T? value)
+    {
+        return value is not null ? Some(value) : None();
+    }
+
+    public static Option<T> None()
+    {
+        return new Option<T>(default);
     }
 
     public static bool operator !=(Option<T> left, Option<T> right)
@@ -34,131 +55,205 @@ public readonly struct Option<T> where T : notnull
         return !(left == right);
     }
 
+    public static bool operator <(Option<T> left, Option<T> right)
+    {
+        if (left.IsNone && right.IsNone) return false;
+
+        if (left.IsSome && right.IsSome)
+            // If T is a value type, you can use Comparer<T>.Default.Compare
+            // For simplicity, assuming T is a reference type here
+            return Comparer<T>.Default.Compare(left._value, right._value) < 0;
+
+        // None is considered less than Some
+        return left.IsNone;
+    }
+
+    public static bool operator <=(Option<T> left, Option<T> right)
+    {
+        return !(right < left);
+    }
+
     public static bool operator ==(Option<T> left, Option<T> right)
     {
         return left.Equals(right);
     }
 
+    public static bool operator >(Option<T> left, Option<T> right)
+    {
+        return right < left;
+    }
+
+    public static bool operator >=(Option<T> left, Option<T> right)
+    {
+        return !(left < right);
+    }
+
+    public static Option<T> Some([DisallowNull] T value)
+    {
+        if (value == null) throw new ArgumentNullException(nameof(value));
+        return new Option<T>(value);
+    }
+
     public IEnumerable<T> AsEnumerable()
     {
-        if (IsSome)
-        {
-            yield return Value!;
-        }
+        if (IsSome) yield return _value!;
     }
 
-    public Option<TResult> Bind<TResult>(Func<T, Option<TResult>> func) where TResult : notnull
+    public Option<TResult> Bind<TResult>(Func<T, Option<TResult>> binder)
     {
-        return IsSome ? func(Value!) : Option<TResult>.None;
+        return IsSome ? binder(_value!) : Option<TResult>.None();
     }
 
-    public async Task<Option<TResult>> BindAsync<TResult>(Func<T, Task<Option<TResult>>> func) where TResult : notnull
+    public async Task<Option<TResult>> BindAsync<TResult>(Func<T, Task<Option<TResult>>> asyncBinder)
     {
-        if (IsNone) return Option<TResult>.None;
-        return await func(Value!);
+        return IsSome ? await asyncBinder(_value!) : Option<TResult>.None();
+    }
+
+    public Option<(T, T)> Combine(Option<T> other)
+    {
+        if (IsSome && other.IsSome) return Option<(T, T)>.Some((_value!, other._value!));
+
+        return Option<(T, T)>.None();
     }
 
     public void Deconstruct(out T? value)
     {
-        value = Value;
+        value = _value;
+    }
+
+    public void Deconstruct(out bool isSome, out T? value)
+    {
+        isSome = IsSome;
+        value = _value;
+    }
+
+    public bool Equals(Option<T> other)
+    {
+        if (IsNone && other.IsNone) return true;
+
+        if (IsSome && other.IsSome)
+            // If T is a value type, you can use EqualityComparer<T>.Default.Equals
+            // For simplicity, assuming T is a reference type here
+            return EqualityComparer<T>.Default.Equals(_value, other._value);
+
+        return false;
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is Option<T> other && EqualityComparer<T?>.Default.Equals(Value, other.Value);
+        if (obj is Option<T> other) return Equals(other);
+
+        return false;
     }
 
-    public Option<T> Filter(Func<T, bool> predicate)
+    public bool Equals(Option<T> other, IEqualityComparer<T> comparer)
     {
-        return IsSome && predicate(Value!) ? this : None;
+        if (IsNone && other.IsNone) return true;
+
+        if (IsSome && other.IsSome) return comparer.Equals(_value, other._value);
+
+        return false;
     }
 
     public override int GetHashCode()
     {
-        return Value?.GetHashCode() ?? 0;
+        return IsSome ? HashCode.Combine(_value) : 0;
     }
-
-    public void IfSome(Action<T> action)
-    {
-        if (IsSome) action(Value!);
-    }
-
-    public async Task IfSomeAsync(Func<T, Task> action)
-    {
-        if (IsSome) await action(Value!);
-    }
-
     public void IfNone(Action action)
     {
         if (IsNone) action();
     }
 
-    public async Task IfNoneAsync(Func<Task> action)
+    public async Task IfNoneAsync(Func<Task> asyncAction)
     {
-        if (IsNone) await action();
-    }
-    public Option<TResult> Map<TResult>(Func<T, TResult> func) where TResult : notnull
-    {
-        return IsSome ? new Option<TResult>(func(Value!)) : Option<TResult>.None;
+        if (IsNone) await asyncAction();
     }
 
-    public async Task<Option<TResult>> MapAsync<TResult>(Func<T, Task<TResult>> func) where TResult : notnull
+    public void IfSome(Action<T> action)
     {
-        if (IsNone) return Option<TResult>.None;
-        var result = await func(Value!);
-        return new Option<TResult>(result);
+        if (IsSome) action(_value!);
     }
 
-    public TResult Match<TResult>(Func<T, TResult> someFunc, Func<TResult> noneFunc)
+    public async Task IfSomeAsync(Func<T, Task> asyncAction)
     {
-        return IsSome ? someFunc(Value!) : noneFunc();
+        if (IsSome) await asyncAction(_value!);
     }
 
-    public async Task<TResult> MatchAsync<TResult>(
-        Func<T, Task<TResult>> someFunc,
-        Func<Task<TResult>> noneFunc)
+    public Option<TResult> Map<TResult>(Func<T, TResult> mapper)
+        where TResult : notnull
     {
-        return IsSome ? await someFunc(Value!) : await noneFunc();
+        return _value is null ? Option<TResult>.None() : Option<TResult>.Some(mapper(_value));
     }
 
-    public Option<T> OrElse(Func<Option<T>> fallbackFunc)
+    public async Task<Option<TResult>> MapAsync<TResult>(Func<T, Task<TResult>> asyncMapper)
     {
-        return IsSome ? this : fallbackFunc();
+        return IsSome ? Option<TResult>.Some((await asyncMapper(_value!))!) : Option<TResult>.None();
     }
 
-    public T OrElse(T fallbackValue)
+    public TResult Match<TResult>(Func<T, TResult> some, Func<TResult> none)
+                                where TResult : notnull
     {
-        return IsSome ? Value! : fallbackValue;
+        return _value is null ? none() : some(_value);
+    }
+    public async Task<TResult> MatchAsync<TResult>(Func<T, Task<TResult>> someAsync, Func<Task<TResult>> noneAsync)
+    {
+        return IsSome ? await someAsync(_value!) : await noneAsync();
     }
 
-    public T OrElseGet(Func<T> fallbackFunc)
+    public Option<T> OrElse(Option<T> alternative)
     {
-        return IsSome ? Value! : fallbackFunc();
+        return IsSome ? this : alternative;
+    }
+
+    public Option<T> OrElse(Func<Option<T>> alternativeProvider)
+    {
+        return IsSome ? this : alternativeProvider();
+    }
+
+    public T OrElseGet(Func<T> fallBackFunc)
+    {
+        return IsSome ? _value! : fallBackFunc();
+    }
+
+    public T OrElseThrow(Func<Exception> exceptionProvider)
+    {
+        if (IsSome) return _value!;
+
+        throw exceptionProvider();
     }
 
     public T OrElseThrow(Exception ex)
     {
-        return IsSome ? Value! : throw ex;
+        return IsSome ? _value! : throw ex;
     }
 
-    public Option<TResult> Select<TResult>(Func<T, TResult> selector) where TResult : notnull
+    public Option<TResult> Select<TResult>(Func<T, TResult> selector)
     {
-        return IsSome ? new Option<TResult>(selector(Value!)) : Option<TResult>.None;
+        return IsSome ? Option<TResult>.Some(selector(_value!)!) : Option<TResult>.None();
     }
 
-    public Option<TResult> SelectMany<TResult>(Func<T, Option<TResult>> binder) where TResult : notnull
+    public Option<TResult> SelectMany<TResult>(Func<T, Option<TResult>> selector)
     {
-        return IsSome ? binder(Value!) : Option<TResult>.None;
+        return IsSome ? selector(_value!) : Option<TResult>.None();
     }
 
+    public T[] ToArray()
+    {
+        return IsSome ? new[] { _value! } : Array.Empty<T>();
+    }
+
+    public List<T> ToList()
+    {
+        return IsSome ? new List<T> { _value! } : new List<T>();
+    }
     public override string ToString()
     {
-        return IsSome ? $"Some: {Value}" : "None";
+        return IsSome ? $"Some: {_value}" : nameof(None);
     }
 
-    public Option<TResult> Transform<TResult>(Func<T, TResult> transformFunc, Func<TResult> defaultFunc) where TResult : notnull
+    public TResult Transform<TResult>(Func<Option<T>, TResult> transformer)
     {
-        return IsSome ? new Option<TResult>(transformFunc(Value!)) : new Option<TResult>(defaultFunc());
+        return transformer(this);
     }
 
     public T Unwrap()
@@ -166,31 +261,29 @@ public readonly struct Option<T> where T : notnull
         if (IsNone)
             throw new InvalidOperationException("Attempted to unwrap an Option.None.");
 
-        return Value!;
+        return _value!;
     }
-
     public T Unwrap(T defaultValue)
     {
-        return IsSome ? Value! : defaultValue;
+        return IsSome ? _value! : defaultValue;
     }
 
     public T Unwrap(Func<T> defaultValueFunc)
     {
-        return IsSome ? Value! : defaultValueFunc();
+        return IsSome ? _value! : defaultValueFunc();
+    }
+    public Option<T> Validate(Func<T?, bool> validation)
+    {
+        return validation(_value) ? this : None();
     }
 
     public Option<T> Where(Func<T, bool> predicate)
     {
-        return IsSome && predicate(Value!) ? this : None;
+        return IsSome && predicate(_value!) ? this : None();
     }
 
-    public T[] ToArray()
+    public async Task<Option<T>> WhereAsync(Func<T, Task<bool>> predicate)
     {
-        return IsSome ? new[] { Value! } : Array.Empty<T>();
-    }
-
-    public List<T> ToList()
-    {
-        return IsSome ? new List<T> { Value! } : new List<T>();
+        return IsSome && await predicate(_value!) ? this : None();
     }
 }

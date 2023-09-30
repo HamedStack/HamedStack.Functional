@@ -1,33 +1,67 @@
-﻿// ReSharper disable UnusedMember.Global
+﻿// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable UnusedType.Global
+// ReSharper disable UnusedMember.Global
+
+using System.Diagnostics.CodeAnalysis;
+
+#pragma warning disable CS1591
+
 namespace HamedStack.Functional;
 
-public readonly struct Either<TLeft, TRight>
+public readonly struct Either<TLeft, TRight> : IEquatable<Either<TLeft, TRight>>
 {
-    public Either(TLeft? left, TRight? right)
+    private Either(TLeft? left, TRight? right)
     {
         if (left is not null && right is not null)
-            throw new ArgumentException("Either can have a Left or Right value, but not both.");
+            throw new ArgumentException("Either must have either a Left or a Right value, but not both.");
+
+        if (left is null && right is null)
+            throw new ArgumentException("Either must have either a Left or a Right value; but both are null.");
+
         Left = left;
         Right = right;
     }
+
+    private Either([DisallowNull] TLeft left)
+    {
+        Left = left ?? throw new ArgumentNullException(nameof(left));
+    }
+
+    private Either([DisallowNull] TRight right)
+    {
+        Right = right ?? throw new ArgumentNullException(nameof(right));
+    }
+
     public bool IsLeft => Left is not null;
-
     public bool IsRight => Right is not null;
-
     public TLeft? Left { get; }
-
     public TRight? Right { get; }
+    public static Either<TLeft, TRight> Create(TLeft? left, TRight? right)
+    {
+        return new Either<TLeft, TRight>(left, right);
+    }
+
+    public static Either<TLeft, TRight> CreateLeft([DisallowNull] TLeft left)
+    {
+        if (left == null) throw new ArgumentNullException(nameof(left));
+        return new Either<TLeft, TRight>(left);
+    }
+
+    public static Either<TLeft, TRight> CreateRight([DisallowNull] TRight right)
+    {
+        if (right == null) throw new ArgumentNullException(nameof(right));
+        return new Either<TLeft, TRight>(right);
+    }
 
     public static implicit operator Either<TLeft, TRight>(TLeft left)
     {
-        return new Either<TLeft, TRight>(left, default);
+        return new Either<TLeft, TRight>(left!);
     }
 
     public static implicit operator Either<TLeft, TRight>(TRight right)
     {
-        return new Either<TLeft, TRight>(default, right);
+        return new Either<TLeft, TRight>(right!);
     }
-
     public static bool operator !=(Either<TLeft, TRight> left, Either<TLeft, TRight> right)
     {
         return !(left == right);
@@ -54,17 +88,30 @@ public readonly struct Either<TLeft, TRight>
         right = Right;
     }
 
-    public void Deconstruct(out object? leftOrRight, out bool isLeft)
+    public void Deconstruct(out object leftOrRight, out bool isLeft)
     {
-        leftOrRight = IsLeft ? Left : Right;
+        leftOrRight = IsLeft ? Left! : Right!;
         isLeft = IsLeft;
+    }
+
+    public bool Equals(Either<TLeft, TRight> other)
+    {
+        if (IsLeft && other.IsLeft)
+        {
+            return EqualityComparer<TLeft>.Default.Equals(Left, other.Left);
+        }
+
+        if (IsRight && other.IsRight)
+        {
+            return EqualityComparer<TRight>.Default.Equals(Right, other.Right);
+        }
+
+        return false;
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is Either<TLeft, TRight> other &&
-               EqualityComparer<TLeft?>.Default.Equals(Left, other.Left) &&
-               EqualityComparer<TRight?>.Default.Equals(Right, other.Right);
+        return obj is Either<TLeft, TRight> other && Equals(other);
     }
 
     public T Fold<T>(Func<TLeft, T> onLeft, Func<TRight, T> onRight)
@@ -74,7 +121,7 @@ public readonly struct Either<TLeft, TRight>
 
     public override int GetHashCode()
     {
-        return (Left?.GetHashCode() ?? 0) ^ (Right?.GetHashCode() ?? 0);
+        return IsLeft ? Left?.GetHashCode() ?? 0 : Right?.GetHashCode() ?? 0;
     }
 
     public void IfLeft(Action<TLeft> action)
@@ -87,14 +134,21 @@ public readonly struct Either<TLeft, TRight>
         if (IsRight) action(Right!);
     }
 
+    public Either<TLeft, TResult> Map<TResult>(Func<TRight, TResult> mapper)
+        where TResult : notnull
+    {
+        if (mapper == null) throw new ArgumentNullException(nameof(mapper));
+        return IsRight ? Either<TLeft, TResult>.CreateRight(mapper(Right!)) : Either<TLeft, TResult>.CreateLeft(Left!);
+    }
+
     public Either<TResult, TRight> MapLeft<TResult>(Func<TLeft, TResult> func)
     {
         return IsLeft ? new Either<TResult, TRight>(func(Left!), default) : new Either<TResult, TRight>(default, Right);
     }
 
-    public T Match<T>(Func<TLeft, T> onLeft, Func<TRight, T> onRight)
+    public TResult Match<TResult>(Func<TLeft, TResult> left, Func<TRight, TResult> right)
     {
-        return IsLeft ? onLeft(Left!) : onRight(Right!);
+        return IsRight ? right(Right!) : left(Left!);
     }
 
     public async Task<TResult> MatchAsync<TResult>(
@@ -104,9 +158,9 @@ public readonly struct Either<TLeft, TRight>
         return IsLeft ? await onLeftFunc(Left!) : await onRightFunc(Right!);
     }
 
-    public Either<TLeft, TRight> OrElse(Func<TRight> fallbackFunc)
+    public Either<TLeft, TRight> OrElse(Func<TRight> fallBackFunc)
     {
-        return IsRight ? this : new Either<TLeft, TRight>(default, fallbackFunc());
+        return IsRight ? this : new Either<TLeft, TRight>(default, fallBackFunc());
     }
 
     public Either<TLeft, TResult> Select<TResult>(Func<TRight, TResult> selector)
@@ -116,8 +170,17 @@ public readonly struct Either<TLeft, TRight>
             : new Either<TLeft, TResult>(Left, default);
     }
 
+    public Either<TLeft, TResult> SelectMany<TResult>(Func<TRight, Either<TLeft, TResult>> selector)
+    {
+        return IsRight ? selector(Right!) : new Either<TLeft, TResult>(Left, default);
+    }
+
     public override string ToString()
     {
         return IsLeft ? $"Left: {Left}" : $"Right: {Right}";
+    }
+    public Either<TLeft, TRight> Where(Func<TRight, bool> predicate)
+    {
+        return IsRight && predicate(Right!) ? this : new Either<TLeft, TRight>(Left, default);
     }
 }

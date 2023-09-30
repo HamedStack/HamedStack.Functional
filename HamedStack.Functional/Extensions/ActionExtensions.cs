@@ -1,11 +1,10 @@
-﻿
-// ReSharper disable UnusedMember.Global
+﻿// ReSharper disable UnusedMember.Global
 
 namespace HamedStack.Functional.Extensions;
 
 public static class ActionExtensions
 {
-    public static Func<Unit> ToFunc(this Action @this)
+    public static Func<Unit> ToUnitFunc(this Action @this)
     {
         return () =>
         {
@@ -14,7 +13,7 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T, Unit> ToFunc<T>(this Action<T> @this)
+    public static Func<T, Unit> ToUnitFunc<T>(this Action<T> @this)
     {
         return t =>
         {
@@ -23,7 +22,7 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, Unit> ToFunc<T1, T2>(this Action<T1, T2> @this)
+    public static Func<T1, T2, Unit> ToUnitFunc<T1, T2>(this Action<T1, T2> @this)
     {
         return (t1, t2) =>
         {
@@ -32,7 +31,7 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, Unit> ToFunc<T1, T2, T3>(this Action<T1, T2, T3> @this)
+    public static Func<T1, T2, T3, Unit> ToUnitFunc<T1, T2, T3>(this Action<T1, T2, T3> @this)
     {
         return (t1, t2, t3) =>
         {
@@ -41,7 +40,7 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, Unit> ToFunc<T1, T2, T3, T4>(this Action<T1, T2, T3, T4> @this)
+    public static Func<T1, T2, T3, T4, Unit> ToUnitFunc<T1, T2, T3, T4>(this Action<T1, T2, T3, T4> @this)
     {
         return (t1, t2, t3, t4) =>
         {
@@ -50,7 +49,7 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, Unit> ToFunc<T1, T2, T3, T4, T5>(this Action<T1, T2, T3, T4, T5> @this)
+    public static Func<T1, T2, T3, T4, T5, Unit> ToUnitFunc<T1, T2, T3, T4, T5>(this Action<T1, T2, T3, T4, T5> @this)
     {
         return (t1, t2, t3, t4, t5) =>
         {
@@ -59,7 +58,8 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, T6, Unit> ToFunc<T1, T2, T3, T4, T5, T6>(this Action<T1, T2, T3, T4, T5, T6> @this)
+    public static Func<T1, T2, T3, T4, T5, T6, Unit> ToUnitFunc<T1, T2, T3, T4, T5, T6>(
+        this Action<T1, T2, T3, T4, T5, T6> @this)
     {
         return (t1, t2, t3, t4, t5, t6) =>
         {
@@ -68,7 +68,8 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, T6, T7, Unit> ToFunc<T1, T2, T3, T4, T5, T6, T7>(this Action<T1, T2, T3, T4, T5, T6, T7> @this)
+    public static Func<T1, T2, T3, T4, T5, T6, T7, Unit> ToUnitFunc<T1, T2, T3, T4, T5, T6, T7>(
+        this Action<T1, T2, T3, T4, T5, T6, T7> @this)
     {
         return (t1, t2, t3, t4, t5, t6, t7) =>
         {
@@ -77,7 +78,8 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, Unit> ToFunc<T1, T2, T3, T4, T5, T6, T7, T8>(this Action<T1, T2, T3, T4, T5, T6, T7, T8> @this)
+    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, Unit> ToUnitFunc<T1, T2, T3, T4, T5, T6, T7, T8>(
+        this Action<T1, T2, T3, T4, T5, T6, T7, T8> @this)
     {
         return (t1, t2, t3, t4, t5, t6, t7, t8) =>
         {
@@ -86,7 +88,8 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, Unit> ToFunc<T1, T2, T3, T4, T5, T6, T7, T8, T9>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9> @this)
+    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, Unit> ToUnitFunc<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+        this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9> @this)
     {
         return (t1, t2, t3, t4, t5, t6, t7, t8, t9) =>
         {
@@ -95,7 +98,8 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, Unit> ToFunc<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> @this)
+    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, Unit> ToUnitFunc<T1, T2, T3, T4, T5, T6, T7, T8, T9,
+        T10>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> @this)
     {
         return (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10) =>
         {
@@ -104,7 +108,8 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, Unit> ToFunc<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> @this)
+    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, Unit> ToUnitFunc<T1, T2, T3, T4, T5, T6, T7, T8,
+        T9, T10, T11>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> @this)
     {
         return (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11) =>
         {
@@ -113,7 +118,8 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, Unit> ToFunc<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> @this)
+    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, Unit> ToUnitFunc<T1, T2, T3, T4, T5, T6, T7,
+        T8, T9, T10, T11, T12>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> @this)
     {
         return (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12) =>
         {
@@ -122,7 +128,8 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, Unit> ToFunc<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> @this)
+    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, Unit> ToUnitFunc<T1, T2, T3, T4, T5, T6,
+        T7, T8, T9, T10, T11, T12, T13>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> @this)
     {
         return (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13) =>
         {
@@ -131,7 +138,9 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, Unit> ToFunc<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> @this)
+    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, Unit> ToUnitFunc<T1, T2, T3, T4, T5,
+        T6, T7, T8, T9, T10, T11, T12, T13, T14>(
+        this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> @this)
     {
         return (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14) =>
         {
@@ -140,7 +149,9 @@ public static class ActionExtensions
         };
     }
 
-    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, Unit> ToFunc<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> @this)
+    public static Func<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, Unit> ToUnitFunc<T1, T2, T3,
+        T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(
+        this Action<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> @this)
     {
         return (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15) =>
         {

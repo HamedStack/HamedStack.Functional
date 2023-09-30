@@ -6,17 +6,17 @@
 
 namespace HamedStack.Functional;
 
-public readonly struct Result
+public readonly struct Result<T>
 {
     private Result(
-        object? value,
+        T? value,
         ResultStatus status,
         Exception? exception = default,
         string? errorMessage = default,
         Dictionary<string, object?>? metaData = default)
     {
-        Value = value;
         HasError = status != ResultStatus.Success;
+        Value = value;
         IsSuccess = status == ResultStatus.Success;
         IsFailure = status == ResultStatus.Failure;
         IsConflict = status == ResultStatus.Conflict;
@@ -66,173 +66,174 @@ public readonly struct Result
     public bool IsUnsupported { get; }
     public Dictionary<string, object?>? MetaData { get; }
     public ResultStatus Status { get; }
-    public object? Value { get; }
-    public static Result Conflict(
+    public T? Value { get; }
+    public static Result<T> Conflict(
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(ResultStatus.Conflict, exception, errorMessage, metaData);
+        return new Result<T>(ResultStatus.Conflict, exception, errorMessage, metaData);
     }
 
-    public static Result Conflict(
-        object? value,
+    public static Result<T> Conflict(
+        T? value,
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(value, ResultStatus.Conflict, exception, errorMessage, metaData);
+        return new Result<T>(value, ResultStatus.Conflict, exception, errorMessage, metaData);
     }
 
-    public static Result Failure(
+    public static Result<T> Failure(
+        T? value,
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(ResultStatus.Failure, exception, errorMessage, metaData);
+        return new Result<T>(value, ResultStatus.Failure, exception, errorMessage, metaData);
     }
 
-    public static Result Failure(
-        object? value,
+    public static Result<T> Failure(
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(value, ResultStatus.Failure, exception, errorMessage, metaData);
+        return new Result<T>(ResultStatus.Failure, exception, errorMessage, metaData);
     }
 
-    public static Result Forbidden(
+    public static Result<T> Forbidden(
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(ResultStatus.Forbidden, exception, errorMessage, metaData);
+        return new Result<T>(ResultStatus.Forbidden, exception, errorMessage, metaData);
     }
 
-    public static Result Forbidden(
-        object? value,
+    public static Result<T> Forbidden(
+        T? value,
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(value, ResultStatus.Forbidden, exception, errorMessage, metaData);
+        return new Result<T>(value, ResultStatus.Forbidden, exception, errorMessage, metaData);
     }
 
-    public static Result Invalid(
+    public static Result<T> Invalid(
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(ResultStatus.Invalid, exception, errorMessage, metaData);
+        return new Result<T>(ResultStatus.Invalid, exception, errorMessage, metaData);
     }
 
-    public static Result Invalid(
-        object? value,
+    public static Result<T> Invalid(
+        T? value,
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(value, ResultStatus.Invalid, exception, errorMessage, metaData);
+        return new Result<T>(value, ResultStatus.Invalid, exception, errorMessage, metaData);
     }
 
-    public static Result NotFound(
+    public static Result<T> NotFound(
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(ResultStatus.NotFound, exception, errorMessage, metaData);
+        return new Result<T>(ResultStatus.NotFound, exception, errorMessage, metaData);
     }
 
-    public static Result NotFound(
-        object? value,
+    public static Result<T> NotFound(
+        T? value,
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(value, ResultStatus.NotFound, exception, errorMessage, metaData);
+        return new Result<T>(value, ResultStatus.NotFound, exception, errorMessage, metaData);
     }
 
-    public static Result Success(object? value)
+    public static Result<T> Success(T? value)
     {
-        return new Result(value, ResultStatus.Success);
+        return new Result<T>(value, ResultStatus.Success);
     }
 
-    public static Result Success()
+    public static Result<T> Success()
     {
-        return new Result(ResultStatus.Success);
+        return new Result<T>(ResultStatus.Success);
     }
-    public static Result Unauthorized(
+    public static Result<T> Unauthorized(
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(ResultStatus.Unauthorized, exception, errorMessage, metaData);
+        return new Result<T>(ResultStatus.Unauthorized, exception, errorMessage, metaData);
     }
-    public static Result Unauthorized(
-        object? value,
+
+    public static Result<T> Unauthorized(
+        T? value,
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(value, ResultStatus.Unauthorized, exception, errorMessage, metaData);
+        return new Result<T>(value, ResultStatus.Unauthorized, exception, errorMessage, metaData);
     }
-
-    public static Result Unsupported(
-            string? errorMessage = default,
-        Exception? exception = default,
-        Dictionary<string, object?>? metaData = default)
-    {
-        return new Result(ResultStatus.Unsupported, exception, errorMessage, metaData);
-    }
-    public static Result Unsupported(
-        object? value,
+    public static Result<T> Unsupported(
         string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
-        return new Result(value, ResultStatus.Unsupported, exception, errorMessage, metaData);
+        return new Result<T>(ResultStatus.Unsupported, exception, errorMessage, metaData);
     }
 
-    public Result AddOrUpdateMetadata(string key, object? value)
+    public static Result<T> Unsupported(
+        T? value,
+        string? errorMessage = default,
+        Exception? exception = default,
+        Dictionary<string, object?>? metaData = default)
+    {
+        return new Result<T>(value, ResultStatus.Unsupported, exception, errorMessage, metaData);
+    }
+
+    public Result<T> AddOrUpdateMetadata(string key, object? value)
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Value cannot be null or whitespace.", nameof(key));
 
         if (MetaData != null) MetaData[key] = value;
-        return new Result(Value, Status, Exception, ErrorMessage, MetaData);
+        return new Result<T>(Value, Status, Exception, ErrorMessage, MetaData);
     }
 
-    public Result<TResult> Map<TResult>(Func<object?, TResult> mapper)
+    public Result<TResult> Map<TResult>(Func<T?, TResult> mapper)
     {
         return IsSuccess
             ? Result<TResult>.Success(mapper(Value))
             : Result<TResult>.Failure(ErrorMessage, Exception, MetaData);
     }
 
-    public TResult Match<TResult>(Func<object, TResult> success,
+    public TResult Match<TResult>(Func<T, TResult> success,
                 Func<string?, object?, Dictionary<string, object?>?, TResult> failure)
     {
         return IsSuccess
             ? success(Value!)
             : failure(ErrorMessage, Exception, MetaData);
     }
-    public Result<TResult> Select<TResult>(Func<object?, TResult> selector)
+    public Result<TResult> Select<TResult>(Func<T?, TResult> selector)
     {
         return IsSuccess
             ? Result<TResult>.Success(selector(Value))
             : Result<TResult>.Failure(ErrorMessage, Exception, MetaData);
     }
 
-    public Result<TResult> SelectMany<TResult>(Func<object?, Result<TResult>> selector)
+    public Result<TResult> SelectMany<TResult>(Func<T?, Result<TResult>> selector)
     {
         return IsSuccess ? selector(Value) : Result<TResult>.Failure(ErrorMessage, Exception, MetaData);
     }
 
-    public Result Where(Func<object?, bool> predicate, string? errorMessage = default)
+    public Result<T> Where(Func<T?, bool> predicate, string? errorMessage = default)
     {
         if (!IsSuccess || !predicate(Value))
         {
-            return Failure(errorMessage ?? ErrorMessage, Exception, MetaData);
+            return Failure(ErrorMessage ?? errorMessage, Exception, MetaData);
         }
 
         return this;

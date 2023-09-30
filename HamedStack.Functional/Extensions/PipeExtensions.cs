@@ -4,12 +4,12 @@
 namespace HamedStack.Functional.Extensions;
 
 /// <summary>
-/// Contains extension methods for piping operations on objects.
+///     Contains extension methods for piping operations on objects.
 /// </summary>
 public static class PipeExtensions
 {
     /// <summary>
-    /// Pipes the given object into the provided function and returns the result.
+    ///     Pipes the given object into the provided function and returns the result.
     /// </summary>
     /// <typeparam name="T">The type of the object being piped.</typeparam>
     /// <typeparam name="TU">The return type of the function.</typeparam>
@@ -22,7 +22,7 @@ public static class PipeExtensions
     }
 
     /// <summary>
-    /// Pipes the given object into the provided action and returns the object.
+    ///     Pipes the given object into the provided action and returns the object.
     /// </summary>
     /// <typeparam name="T">The type of the object being piped.</typeparam>
     /// <param name="obj">The object to pipe.</param>
@@ -35,7 +35,7 @@ public static class PipeExtensions
     }
 
     /// <summary>
-    /// Asynchronously pipes the given object into the provided function and returns the result.
+    ///     Asynchronously pipes the given object into the provided function and returns the result.
     /// </summary>
     /// <typeparam name="T">The type of the object being piped.</typeparam>
     /// <typeparam name="TU">The return type of the function.</typeparam>
@@ -48,7 +48,7 @@ public static class PipeExtensions
     }
 
     /// <summary>
-    /// Asynchronously pipes the given object into the provided function and returns the object.
+    ///     Asynchronously pipes the given object into the provided function and returns the object.
     /// </summary>
     /// <typeparam name="T">The type of the object being piped.</typeparam>
     /// <param name="obj">The object to pipe.</param>
@@ -61,7 +61,7 @@ public static class PipeExtensions
     }
 
     /// <summary>
-    /// Asynchronously pipes the given object into the provided function without returning a result.
+    ///     Asynchronously pipes the given object into the provided function without returning a result.
     /// </summary>
     /// <typeparam name="T">The type of the object being piped.</typeparam>
     /// <param name="obj">The object to pipe.</param>
@@ -72,7 +72,7 @@ public static class PipeExtensions
     }
 
     /// <summary>
-    /// Pipes the given object into the provided action and returns a unit type.
+    ///     Pipes the given object into the provided action and returns a unit type.
     /// </summary>
     /// <typeparam name="T">The type of the object being piped.</typeparam>
     /// <param name="obj">The object to pipe.</param>
@@ -85,7 +85,7 @@ public static class PipeExtensions
     }
 
     /// <summary>
-    /// Asynchronously pipes the given object into the provided function and returns a unit type.
+    ///     Asynchronously pipes the given object into the provided function and returns a unit type.
     /// </summary>
     /// <typeparam name="T">The type of the object being piped.</typeparam>
     /// <param name="obj">The object to pipe.</param>
@@ -98,7 +98,7 @@ public static class PipeExtensions
     }
 
     /// <summary>
-    /// Pipes the given object into the provided action without returning a result.
+    ///     Pipes the given object into the provided action without returning a result.
     /// </summary>
     /// <typeparam name="T">The type of the object being piped.</typeparam>
     /// <param name="obj">The object to pipe.</param>
