@@ -67,6 +67,7 @@ public readonly struct Result<T>
     public Dictionary<string, object?>? MetaData { get; }
     public ResultStatus Status { get; }
     public T? Value { get; }
+
     public static Result<T> Conflict(
         string? errorMessage = default,
         Exception? exception = default,
@@ -118,8 +119,34 @@ public readonly struct Result<T>
         return new Result<T>(value, ResultStatus.Forbidden, exception, errorMessage, metaData);
     }
 
+    public static Result<T> FromAction(Action action, Func<Exception, Exception> errorMapper)
+    {
+        try
+        {
+            action();
+            return Success();
+        }
+        catch (Exception ex)
+        {
+            return Failure(exception: errorMapper(ex));
+        }
+    }
+
+    public static Result<T> FromAction(Action action, Func<Exception> errorMapper)
+    {
+        try
+        {
+            action();
+            return Success();
+        }
+        catch
+        {
+            return Failure(exception: errorMapper());
+        }
+    }
+
     public static Result<T> Invalid(
-        string? errorMessage = default,
+                string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
@@ -161,6 +188,7 @@ public readonly struct Result<T>
     {
         return new Result<T>(ResultStatus.Success);
     }
+
     public static Result<T> Unauthorized(
         string? errorMessage = default,
         Exception? exception = default,
@@ -177,6 +205,7 @@ public readonly struct Result<T>
     {
         return new Result<T>(value, ResultStatus.Unauthorized, exception, errorMessage, metaData);
     }
+
     public static Result<T> Unsupported(
         string? errorMessage = default,
         Exception? exception = default,
@@ -203,6 +232,29 @@ public readonly struct Result<T>
         return new Result<T>(Value, Status, Exception, ErrorMessage, MetaData);
     }
 
+    public Result<TResult> Cast<TResult>()
+    {
+        if (!IsSuccess)
+            return Status switch
+            {
+                ResultStatus.Conflict => Result<TResult>.Conflict(ErrorMessage, Exception, MetaData),
+                ResultStatus.Failure => Result<TResult>.Failure(ErrorMessage, Exception, MetaData),
+                ResultStatus.Forbidden => Result<TResult>.Forbidden(ErrorMessage, Exception, MetaData),
+                ResultStatus.Invalid => Result<TResult>.Invalid(ErrorMessage, Exception, MetaData),
+                ResultStatus.NotFound => Result<TResult>.NotFound(ErrorMessage, Exception, MetaData),
+                ResultStatus.Unauthorized => Result<TResult>.Unauthorized(ErrorMessage, Exception, MetaData),
+                ResultStatus.Unsupported => Result<TResult>.Unsupported(ErrorMessage, Exception, MetaData),
+                _ => throw new InvalidOperationException($"Unknown status: {Status}")
+            };
+
+        if (Value is TResult v)
+        {
+            return Result<TResult>.Success(v);
+        }
+
+        return Result<TResult>.Failure($"Failed to cast from type {typeof(T)} to {typeof(TResult)}");
+    }
+
     public Result<TResult> Map<TResult>(Func<T?, TResult> mapper)
     {
         return IsSuccess
@@ -211,12 +263,18 @@ public readonly struct Result<T>
     }
 
     public TResult Match<TResult>(Func<T, TResult> success,
-                Func<string?, object?, Dictionary<string, object?>?, TResult> failure)
+        Func<string?, object?, Dictionary<string, object?>?, TResult> failure)
     {
         return IsSuccess
             ? success(Value!)
             : failure(ErrorMessage, Exception, MetaData);
     }
+
+    public Result<T> Recover(Func<T?, Result<T>> recovery)
+    {
+        return IsSuccess ? this : recovery(Value);
+    }
+
     public Result<TResult> Select<TResult>(Func<T?, TResult> selector)
     {
         return IsSuccess
@@ -227,6 +285,32 @@ public readonly struct Result<T>
     public Result<TResult> SelectMany<TResult>(Func<T?, Result<TResult>> selector)
     {
         return IsSuccess ? selector(Value) : Result<TResult>.Failure(ErrorMessage, Exception, MetaData);
+    }
+
+    public T? UnwrapOrDefault()
+    {
+        return IsSuccess ? Value : default;
+    }
+
+    public T? UnwrapOrDefault(T? defaultValue)
+    {
+        return IsSuccess ? Value : defaultValue;
+    }
+
+    public T UnwrapOrThrow()
+    {
+        if (IsSuccess) return Value!;
+
+        throw new InvalidOperationException("Cannot unwrap a failed result.");
+    }
+
+    public T UnwrapOrThrow(Func<Exception> exceptionProvider)
+    {
+        if (IsSuccess)
+        {
+            return Value!;
+        }
+        throw exceptionProvider();
     }
 
     public Result<T> Where(Func<T?, bool> predicate, string? errorMessage = default)

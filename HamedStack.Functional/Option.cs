@@ -4,6 +4,7 @@
 #pragma warning disable CS1591
 
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 
 namespace HamedStack.Functional;
 
@@ -60,11 +61,8 @@ public readonly struct Option<T> : IEquatable<Option<T>>
         if (left.IsNone && right.IsNone) return false;
 
         if (left.IsSome && right.IsSome)
-            // If T is a value type, you can use Comparer<T>.Default.Compare
-            // For simplicity, assuming T is a reference type here
             return Comparer<T>.Default.Compare(left._value, right._value) < 0;
 
-        // None is considered less than Some
         return left.IsNone;
     }
 
@@ -94,6 +92,16 @@ public readonly struct Option<T> : IEquatable<Option<T>>
         return new Option<T>(value);
     }
 
+    public static Option<(T, TOther)> Zip<TOther>(Option<T> option1, Option<TOther> option2)
+    {
+        if (option1.IsSome && option2.IsSome)
+        {
+            return Option<(T, TOther)>.Some((option1._value!, option2._value!));
+        }
+
+        return Option<(T, TOther)>.None();
+    }
+
     public IEnumerable<T> AsEnumerable()
     {
         if (IsSome) yield return _value!;
@@ -109,11 +117,23 @@ public readonly struct Option<T> : IEquatable<Option<T>>
         return IsSome ? await asyncBinder(_value!) : Option<TResult>.None();
     }
 
+    public Option<TResult> Cast<TResult>()
+    {
+        return IsSome && _value is TResult v
+            ? Option<TResult>.Some(v)
+            : Option<TResult>.None();
+    }
+
     public Option<(T, T)> Combine(Option<T> other)
     {
         if (IsSome && other.IsSome) return Option<(T, T)>.Some((_value!, other._value!));
 
         return Option<(T, T)>.None();
+    }
+
+    public bool Contains(T value)
+    {
+        return IsSome && EqualityComparer<T>.Default.Equals(_value, value);
     }
 
     public void Deconstruct(out T? value)
@@ -256,6 +276,11 @@ public readonly struct Option<T> : IEquatable<Option<T>>
         return transformer(this);
     }
 
+    public Option<T> Transform(Func<T, T> transformer)
+    {
+        return IsSome ? Some(transformer(_value!) ?? throw new InvalidOperationException()) : this;
+    }
+
     public T Unwrap()
     {
         if (IsNone)
@@ -282,8 +307,19 @@ public readonly struct Option<T> : IEquatable<Option<T>>
         return IsSome && predicate(_value!) ? this : None();
     }
 
+    public Option<T> Where(Expression<Func<T, bool>> expression)
+    {
+        var compiledExpression = expression.Compile();
+        return IsSome && compiledExpression(_value!) ? this : None();
+    }
+
     public async Task<Option<T>> WhereAsync(Func<T, Task<bool>> predicate)
     {
         return IsSome && await predicate(_value!) ? this : None();
+    }
+    public async Task<Option<T>> WhereAsync(Expression<Func<T, Task<bool>>> expression)
+    {
+        var compiledExpression = expression.Compile();
+        return IsSome && await compiledExpression(_value!) ? this : None();
     }
 }

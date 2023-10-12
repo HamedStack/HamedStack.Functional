@@ -160,13 +160,10 @@ public static class OptionExtensions
             ? Option<TValue>.Some(value)
             : Option<TValue>.None();
     }
-    public static Option<T> ToOption<T>(this T? value) where T : struct
-    {
-        return value.HasValue ? Option<T>.Some(value.Value) : Option<T>.None();
-    }
 
-    public static Option<T> ToOption<T>(this T? value) where T : class
+    public static Option<T> ToOption<T>(this T? value)
     {
         return value is not null ? Option<T>.Some(value) : Option<T>.None();
     }
+
 }

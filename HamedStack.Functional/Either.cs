@@ -1,6 +1,7 @@
 ﻿// ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
+// ReSharper disable InconsistentNaming
 
 using System.Diagnostics.CodeAnalysis;
 
@@ -53,6 +54,20 @@ public readonly struct Either<TLeft, TRight> : IEquatable<Either<TLeft, TRight>>
         return new Either<TLeft, TRight>(right);
     }
 
+    public static explicit operator TLeft(Either<TLeft, TRight> either)
+    {
+        if (either.IsLeft)
+            return either.Left!;
+        throw new InvalidCastException("Cannot cast to TLeft when Either is a Right.");
+    }
+
+    public static explicit operator TRight(Either<TLeft, TRight> either)
+    {
+        if (either.IsRight)
+            return either.Right!;
+        throw new InvalidCastException("Cannot cast to TRight when Either is a Left.");
+    }
+
     public static implicit operator Either<TLeft, TRight>(TLeft left)
     {
         return new Either<TLeft, TRight>(left!);
@@ -62,6 +77,11 @@ public readonly struct Either<TLeft, TRight> : IEquatable<Either<TLeft, TRight>>
     {
         return new Either<TLeft, TRight>(right!);
     }
+    public static bool IsEither(object obj)
+    {
+        return obj is Either<TLeft, TRight>;
+    }
+
     public static bool operator !=(Either<TLeft, TRight> left, Either<TLeft, TRight> right)
     {
         return !(left == right);
@@ -71,7 +91,6 @@ public readonly struct Either<TLeft, TRight> : IEquatable<Either<TLeft, TRight>>
     {
         return left.Equals(right);
     }
-
     public Either<T, TRight> BindLeft<T>(Func<TLeft, Either<T, TRight>> func)
     {
         return IsLeft ? func(Left!) : new Either<T, TRight>(default, Right);
@@ -80,6 +99,33 @@ public readonly struct Either<TLeft, TRight> : IEquatable<Either<TLeft, TRight>>
     public Either<TLeft, T> BindRight<T>(Func<TRight, Either<TLeft, T>> func)
     {
         return IsRight ? func(Right!) : new Either<TLeft, T>(Left, default);
+    }
+
+    public object Coalesce(bool checkRightFirst = false)
+    {
+        if (checkRightFirst)
+        {
+            if (IsRight)
+            {
+                return Right!;
+            }
+            if (IsLeft)
+            {
+                return Left!;
+            }
+        }
+        else
+        {
+            if (IsLeft)
+            {
+                return Left!;
+            }
+            if (IsRight)
+            {
+                return Right!;
+            }
+        }
+        throw new InvalidOperationException("Both Left and Right are null.");
     }
 
     public void Deconstruct(out TLeft? left, out TRight? right)
@@ -179,8 +225,15 @@ public readonly struct Either<TLeft, TRight> : IEquatable<Either<TLeft, TRight>>
     {
         return IsLeft ? $"Left: {Left}" : $"Right: {Right}";
     }
-    public Either<TLeft, TRight> Where(Func<TRight, bool> predicate)
+    public Either<TLeft, TRight> WhereLeft(Func<TLeft, bool> predicate)
     {
+        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+        return IsLeft && predicate(Left!) ? this : new Either<TLeft, TRight>(default, Right);
+    }
+
+    public Either<TLeft, TRight> WhereRight(Func<TRight, bool> predicate)
+    {
+        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
         return IsRight && predicate(Right!) ? this : new Either<TLeft, TRight>(Left, default);
     }
 }

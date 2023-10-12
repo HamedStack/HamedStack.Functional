@@ -127,6 +127,15 @@ public readonly struct Exceptional<T> : IEquatable<Exceptional<T>>
         return HasValue ? Exceptional<TResult>.Success(mapper(Value!)!) : Exceptional<TResult>.Failure(Exception!);
     }
 
+    public Exceptional<TNew> MapValue<TNew>(Func<T, TNew> mapper)
+    {
+        if (mapper == null) throw new ArgumentNullException(nameof(mapper));
+
+        return HasValue
+            ? new Exceptional<TNew>(mapper(Value!) ?? throw new InvalidOperationException())
+            : Exceptional<TNew>.Failure(Exception!);
+    }
+
     public TResult Match<TResult>(Func<T, TResult> success, Func<Exception, TResult> failure)
     {
         return HasValue ? success(Value!) : failure(Exception!);
@@ -174,5 +183,12 @@ public readonly struct Exceptional<T> : IEquatable<Exceptional<T>>
     {
         if (predicate == null) throw new ArgumentNullException(nameof(predicate));
         return HasValue && predicate(Value!) ? this : Failure(Exception!);
+    }
+
+    public Exceptional<TResult> Cast<TResult>()
+    {
+        return HasValue && Value is TResult v
+            ? Exceptional<TResult>.Success(v)
+            : Exceptional<TResult>.Failure(Exception!);
     }
 }

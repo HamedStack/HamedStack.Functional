@@ -132,7 +132,11 @@ public static class ResultTExtensions
         if (result.IsSuccess) action(result.Value!);
         return result;
     }
-
+    public static Result<T> TapError<T>(this Result<T> result, Action<T> action)
+    {
+        if (!result.IsSuccess) action(result.Value!);
+        return result;
+    }
     public static Result<T> Then<T>(this Result<T> result, Action<T> action)
     {
         if (result.IsSuccess) action(result.Value!);

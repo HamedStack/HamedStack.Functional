@@ -143,6 +143,12 @@ public static class ResultExtensions
         return result;
     }
 
+    public static Result TapError(this Result result, Action<object> action)
+    {
+        if (!result.IsSuccess) action(result.Value!);
+        return result;
+    }
+
     public static Result Then(this Result result, Action<object> action)
     {
         if (result.IsSuccess) action(result.Value!);

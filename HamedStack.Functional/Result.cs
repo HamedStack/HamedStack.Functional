@@ -118,8 +118,34 @@ public readonly struct Result
         return new Result(value, ResultStatus.Forbidden, exception, errorMessage, metaData);
     }
 
+    public static Result FromAction(Action action, Func<Exception, Exception> errorMapper)
+    {
+        try
+        {
+            action();
+            return Success();
+        }
+        catch (Exception ex)
+        {
+            return Failure(errorMapper(ex));
+        }
+    }
+
+    public static Result FromAction(Action action, Func<Exception> errorMapper)
+    {
+        try
+        {
+            action();
+            return Success();
+        }
+        catch
+        {
+            return Failure(errorMapper());
+        }
+    }
+
     public static Result Invalid(
-        string? errorMessage = default,
+                string? errorMessage = default,
         Exception? exception = default,
         Dictionary<string, object?>? metaData = default)
     {
@@ -216,6 +242,11 @@ public readonly struct Result
             ? success(Value!)
             : failure(ErrorMessage, Exception, MetaData);
     }
+    public Result Recover(Func<Result> recovery)
+    {
+        return IsSuccess ? this : recovery();
+    }
+
     public Result<TResult> Select<TResult>(Func<object?, TResult> selector)
     {
         return IsSuccess
