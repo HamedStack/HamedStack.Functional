@@ -12,7 +12,7 @@ public class Result
     public string[] ErrorMessages { get; protected set; } = new string[] { };
     public string SuccessMessage { get; protected set; } = string.Empty;
     [JsonInclude]
-    public IDictionary<string, object> Metadata { get; protected set; } = new Dictionary<string, object>();
+    public IDictionary<string, object?> Metadata { get; protected set; } = new Dictionary<string, object?>();
 
     public static Result Success()
     {
@@ -64,8 +64,8 @@ public class Result
         return new Result { IsSuccess = false, ErrorMessages = errorMessages, Status = ResultStatus.Unsupported };
     }
 
-    public void AddMetadata(string key, object value)
+    public void AddOrUpdateMetadata(string key, object value)
     {
-        Metadata.Add(key, value);
+        Metadata[key] = value;
     }
 }
