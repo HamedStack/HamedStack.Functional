@@ -64,7 +64,7 @@ public class Result
         return new Result { IsSuccess = false, ErrorMessages = errorMessages, Status = ResultStatus.Unsupported };
     }
 
-    public void AddOrUpdateMetadata(string key, object value)
+    public void AddOrUpdateMetadata(string key, object? value)
     {
         Metadata[key] = value;
     }
