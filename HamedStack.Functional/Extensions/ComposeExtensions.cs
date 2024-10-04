@@ -3,6 +3,10 @@
 
 namespace HamedStack.Functional.Extensions;
 
+/// <summary>
+/// Provides extension methods for composing functions, allowing traditional and forward composition 
+/// to combine multiple functions into one in a readable and concise manner.
+/// </summary>
 public static class ComposeExtensions
 {
     /// <summary>
@@ -16,17 +20,6 @@ public static class ComposeExtensions
     /// <param name="f">The first function to compose.</param>
     /// <param name="g">The second function to compose.</param>
     /// <returns>A new function composed of the provided functions.</returns>
-    /// <example>
-    ///     <code>
-    /// Func<int, double>
-    ///             half = x => x / 2.0;
-    ///             Func
-    ///             <double, string>
-    ///                 toString = x => $"Value: {x}";
-    ///                 var composed = toString.Compose(half);
-    ///                 var result = composed(4);  // result will be "Value: 2"
-    /// </code>
-    /// </example>
     public static Func<TSource, TResult> Compose<TSource, TIntermediate, TResult>(this Func<TIntermediate, TResult> f,
         Func<TSource, TIntermediate> g)
     {
@@ -44,17 +37,6 @@ public static class ComposeExtensions
     /// <param name="f">The first function to compose.</param>
     /// <param name="g">The second function to compose.</param>
     /// <returns>A new function composed of the provided functions in a forward manner.</returns>
-    /// <example>
-    ///     <code>
-    /// Func<int, double>
-    ///             half = x => x / 2.0;
-    ///             Func
-    ///             <double, string>
-    ///                 toString = x => $"Value: {x}";
-    ///                 var composedForward = half.ComposeForward(toString);
-    ///                 var result = composedForward(4);  // result will be "Value: 2"
-    /// </code>
-    /// </example>
     public static Func<TSource, TResult> ComposeForward<TSource, TIntermediate, TResult>(
         this Func<TSource, TIntermediate> f, Func<TIntermediate, TResult> g)
     {

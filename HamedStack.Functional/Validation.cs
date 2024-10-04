@@ -1,217 +1,159 @@
-﻿// ReSharper disable MemberCanBePrivate.Global
-// ReSharper disable UnusedType.Global
-// ReSharper disable UnusedMember.Global
-
-#pragma warning disable CS1591
-
-using System.Diagnostics.CodeAnalysis;
-
+﻿// ReSharper disable UnusedMember.Global
 namespace HamedStack.Functional;
 
-public readonly struct Validation<TValue, TError> : IEquatable<Validation<TValue, TError>>
+/// <summary>
+/// Represents a result of a validation operation that can either be a success or a failure.
+/// </summary>
+/// <typeparam name="T">The type of the value being validated.</typeparam>
+public readonly struct Validation<T>
 {
-    private Validation(TError[] errors)
-    {
-        if (errors == null) throw new ArgumentNullException(nameof(errors));
-        if (errors.Length == 0) throw new ArgumentException("Value cannot be an empty collection.", nameof(errors));
+    private readonly T? _value;
+    private readonly IReadOnlyList<string>? _errors;
 
-        Errors = errors;
-        IsValid = false;
+    /// <summary>
+    /// Indicates whether the validation was successful.
+    /// </summary>
+    public bool IsSuccess { get; }
+
+    /// <summary>
+    /// Indicates whether the validation failed.
+    /// </summary>
+    public bool IsFailure => !IsSuccess;
+
+    /// <summary>
+    /// Gets the collection of errors if the validation failed.
+    /// If the validation was successful, returns an empty list.
+    /// </summary>
+    public IReadOnlyList<string> Errors => _errors ?? Array.Empty<string>();
+
+    /// <summary>
+    /// Initializes a successful validation with a specified value.
+    /// </summary>
+    /// <param name="value">The value of the successful validation.</param>
+    /// <exception cref="ArgumentNullException">Thrown if the <paramref name="value"/> is null.</exception>
+    private Validation(T value)
+    {
+        _value = value ?? throw new ArgumentNullException(nameof(value));
+        _errors = Array.Empty<string>();
+        IsSuccess = true;
     }
 
-    private Validation([DisallowNull] TValue value)
+    /// <summary>
+    /// Initializes a failed validation with a collection of error messages.
+    /// </summary>
+    /// <param name="errors">The error messages associated with the failed validation.</param>
+    private Validation(params string[] errors)
     {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        IsValid = true;
+        _errors = errors;
+        _value = default;
+        IsSuccess = false;
     }
 
-    public TError[]? Errors { get; }
-    public bool IsValid { get; }
-    public TValue? Value { get; }
+    /// <summary>
+    /// Creates a successful validation result with the specified value.
+    /// </summary>
+    /// <param name="value">The value of the successful validation.</param>
+    /// <returns>A successful <see cref="Validation{T}"/> instance.</returns>
+    public static Validation<T> Success(T value) => new(value);
 
-    public static Validation<TValue, TError> Create(bool condition, [DisallowNull] TError error,
-        [DisallowNull] TValue value)
+    /// <summary>
+    /// Creates a failed validation result with the specified error messages.
+    /// </summary>
+    /// <param name="errors">The error messages describing the failure.</param>
+    /// <returns>A failed <see cref="Validation{T}"/> instance.</returns>
+    /// <exception cref="ArgumentException">Thrown if no error messages are provided.</exception>
+    public static Validation<T> Failure(params string[] errors)
     {
-        if (error == null) throw new ArgumentNullException(nameof(error));
-        if (value == null) throw new ArgumentNullException(nameof(value));
-        return condition ? Valid(value) : Invalid(new[] { error });
+        if (errors is null || errors.Length == 0)
+            throw new ArgumentException("At least one error must be provided.", nameof(errors));
+        return new Validation<T>(errors);
     }
 
-    public static Validation<TValue, TError> Create(bool condition, TError[] errors, [DisallowNull] TValue value)
+    /// <summary>
+    /// Matches the validation result to one of two functions depending on its success or failure.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the result returned by the functions.</typeparam>
+    /// <param name="success">The function to execute if the validation is successful.</param>
+    /// <param name="failure">The function to execute if the validation fails.</param>
+    /// <returns>The result of the corresponding function based on the validation's state.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if either <paramref name="success"/> or <paramref name="failure"/> is null.</exception>
+    public TResult Match<TResult>(Func<T, TResult> success, Func<IReadOnlyList<string>, TResult> failure)
     {
-        if (value == null) throw new ArgumentNullException(nameof(value));
-        if (errors == null) throw new ArgumentNullException(nameof(errors));
-        if (errors.Length == 0) throw new ArgumentException("Value cannot be an empty collection.", nameof(errors));
-        return condition ? Valid(value) : Invalid(errors);
+        if (success is null) throw new ArgumentNullException(nameof(success));
+        if (failure is null) throw new ArgumentNullException(nameof(failure));
+        return IsSuccess ? success(_value!) : failure(Errors);
     }
 
-    public static implicit operator Validation<TValue, TError>([DisallowNull] TValue value)
+    /// <summary>
+    /// Transforms the value of a successful validation using the specified mapping function.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the transformed value.</typeparam>
+    /// <param name="mapper">The function to apply to the value if the validation is successful.</param>
+    /// <returns>A new <see cref="Validation{TResult}"/> instance with the transformed value or the original errors if the validation failed.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="mapper"/> is null.</exception>
+    public Validation<TResult> Map<TResult>(Func<T, TResult> mapper)
     {
-        return Valid(value);
+        if (mapper is null) throw new ArgumentNullException(nameof(mapper));
+        return IsSuccess ? Validation<TResult>.Success(mapper(_value!)) : Validation<TResult>.Failure(Errors.ToArray());
     }
 
-    public static implicit operator Validation<TValue, TError>([DisallowNull] TError error)
+    /// <summary>
+    /// Applies a binding function to transform the validation result.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the value in the resulting validation.</typeparam>
+    /// <param name="binder">The function to apply to the value if the validation is successful.</param>
+    /// <returns>A new <see cref="Validation{TResult}"/> based on the binding function or the original errors if the validation failed.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="binder"/> is null.</exception>
+    public Validation<TResult> Bind<TResult>(Func<T, Validation<TResult>> binder)
     {
-        return Invalid(new[] { error });
-    }
-
-    public static implicit operator Validation<TValue, TError>(TError[] errors)
-    {
-        return Invalid(errors);
-    }
-    public static Validation<TValue, TError> Invalid(TError[] errors)
-    {
-        if (errors == null) throw new ArgumentNullException(nameof(errors));
-        if (errors.Length == 0) throw new ArgumentException("Value cannot be an empty collection.", nameof(errors));
-
-        return new Validation<TValue, TError>(errors);
-    }
-
-    public static Validation<TValue, TError> Invalid([DisallowNull] TError error)
-    {
-        if (error == null) throw new ArgumentNullException(nameof(error));
-        return new Validation<TValue, TError>(new[] { error });
-    }
-
-    public static Func<Validation<TValue, TError>, Validation<TResult, TError>> Lift<TResult>(
-        Func<TValue, TResult> func) where TResult : notnull
-    {
-        return validation => validation.Map(func);
-    }
-
-    public static Validation<TValue, TError> Valid([DisallowNull] TValue value)
-    {
-        if (value == null) throw new ArgumentNullException(nameof(value));
-        return new Validation<TValue, TError>(value);
-    }
-
-    public bool Equals(Validation<TValue, TError> other)
-    {
-        return IsValid == other.IsValid &&
-               EqualityComparer<TValue?>.Default.Equals(Value, other.Value) &&
-               ArrayEquals(Errors, other.Errors);
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is Validation<TValue, TError> other && Equals(other);
-    }
-
-    public IEnumerable<TError> GetErrors()
-    {
-        return Errors ?? Enumerable.Empty<TError>();
-    }
-
-    public override int GetHashCode()
-    {
-        unchecked
+        if (binder is null) throw new ArgumentNullException(nameof(binder));
+        if (IsSuccess)
         {
-            var hash = 17;
-
-            hash = hash * 23 + IsValid.GetHashCode();
-
-            if (Value != null)
-            {
-                hash = hash * 23 + Value.GetHashCode();
-            }
-
-            hash = hash * 23 + ArrayHashCode(Errors);
-
-            return hash;
+            var result = binder(_value!);
+            return result.IsSuccess
+                ? Validation<TResult>.Success(result._value!)
+                : Validation<TResult>.Failure(Errors.Concat(result.Errors).ToArray());
         }
+
+        return Validation<TResult>.Failure(Errors.ToArray());
     }
 
-    public TValue GetOrElse(TValue defaultValue)
+    /// <summary>
+    /// Filters the validation value based on a predicate.
+    /// </summary>
+    /// <param name="predicate">The function to test the validation value.</param>
+    /// <returns>A failed validation with a predefined error message if the predicate does not hold; otherwise, the original validation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="predicate"/> is null.</exception>
+    public Validation<T> Where(Func<T, bool> predicate)
     {
-        return IsValid ? Value! : defaultValue;
-    }
-
-    public Validation<TResult, TError> Map<TResult>(Func<TValue, TResult> mapper)
-    {
-        if (!IsValid) return Validation<TResult, TError>.Invalid(Errors!);
-        var newValue = mapper(Value!)!;
-        return Validation<TResult, TError>.Valid(newValue);
-    }
-
-    public TResult Match<TResult>(Func<TValue, TResult> onValid, Func<IEnumerable<TError>, TResult> onInvalid)
-    {
-        return IsValid ? onValid(Value!) : onInvalid(Errors ?? Enumerable.Empty<TError>());
-    }
-
-    public Validation<TResult, TError> Select<TResult>(Func<TValue, TResult> selector)
-    {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (!IsValid)
-            return Validation<TResult, TError>.Invalid(Errors!);
-
-        return Validation<TResult, TError>.Valid(selector(Value!)!);
-    }
-
-    public Validation<TResult, TError> SelectMany<TResult>(
-        Func<TValue, Validation<TResult, TError>> selector)
-    {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (!IsValid)
-            return Validation<TResult, TError>.Invalid(Errors!);
-
-        return selector(Value!);
-    }
-
-    public Validation<TResult, TError> SelectMany<TIntermediate, TResult>(
-        Func<TValue, Validation<TIntermediate, TError>> selector,
-        Func<TValue, TIntermediate, TResult> resultSelector)
-    {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        if (resultSelector == null) throw new ArgumentNullException(nameof(resultSelector));
-        if (!IsValid)
-            return Validation<TResult, TError>.Invalid(Errors!);
-
-        var intermediateValidation = selector(Value!);
-        return intermediateValidation.IsValid
-            ? Validation<TResult, TError>.Valid(resultSelector(Value!, intermediateValidation.Value!)!)
-            : Validation<TResult, TError>.Invalid(intermediateValidation.Errors!);
-    }
-
-    public override string ToString()
-    {
-        return IsValid ? $"Valid: {Value}" : $"Invalid: {string.Join(", ", GetErrors())}";
-    }
-
-    public Validation<TValue, TError> Validate(Func<TValue, bool> condition, [DisallowNull] TError error)
-    {
-        if (Value != null && IsValid && !condition(Value))
-            return Invalid(new[] { error });
-
+        if (predicate is null) throw new ArgumentNullException(nameof(predicate));
+        if (IsSuccess && !predicate(_value!))
+        {
+            return Failure("Predicate did not hold.");
+        }
         return this;
     }
 
-    public Validation<TValue, TError> Validate(Func<TValue, bool> condition, TError[] errors)
-    {
-        if (Value != null && IsValid && !condition(Value))
-            return Invalid(errors);
+    /// <summary>
+    /// Maps the validation value using the specified selector function.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the transformed value.</typeparam>
+    /// <param name="selector">The function to apply to the value if the validation is successful.</param>
+    /// <returns>A new <see cref="Validation{TResult}"/> instance with the transformed value or the original errors if the validation failed.</returns>
+    public Validation<TResult> Select<TResult>(Func<T, TResult> selector) => Map(selector);
 
-        return this;
-    }
-    public Validation<TValue, TError> Where(Func<TValue, bool> predicate, TError? error)
+    /// <summary>
+    /// Projects the value of a validation into a new form using the specified selector and result selector functions.
+    /// </summary>
+    /// <typeparam name="TIntermediate">The type of the intermediate validation value.</typeparam>
+    /// <typeparam name="TResult">The type of the final result value.</typeparam>
+    /// <param name="selector">The function to apply to the value to obtain the intermediate validation.</param>
+    /// <param name="resultSelector">The function to apply to the value and intermediate result to obtain the final result.</param>
+    /// <returns>A new <see cref="Validation{TResult}"/> based on the combined selector functions.</returns>
+    public Validation<TResult> SelectMany<TIntermediate, TResult>(
+        Func<T, Validation<TIntermediate>> selector,
+        Func<T, TIntermediate, TResult> resultSelector)
     {
-        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
-        if (IsValid && !predicate(Value!) && error != null)
-            return Invalid(new[] { error });
-
-        return this;
-    }
-    private static bool ArrayEquals<T>(T[]? array1, T[]? array2)
-    {
-        if (ReferenceEquals(array1, array2)) return true;
-        if (array1 is null || array2 is null) return false;
-
-        if (array1.Length != array2.Length) return false;
-        return !array1.Where((t, i) => !EqualityComparer<T>.Default.Equals(t, array2[i])).Any();
-    }
-
-    private static int ArrayHashCode<T>(T[]? array)
-    {
-        if (array is null) return 0;
-        return array.Aggregate(17, (current, element) => current * 23 + (element?.GetHashCode() ?? 0));
+        return Bind(value => selector(value).Map(intermediate => resultSelector(value, intermediate)));
     }
 }

@@ -1,194 +1,123 @@
-﻿// ReSharper disable MemberCanBePrivate.Global
-// ReSharper disable UnusedType.Global
-// ReSharper disable UnusedMember.Global
-
-using System.Diagnostics.CodeAnalysis;
-
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
+﻿// ReSharper disable UnusedMember.Global
 namespace HamedStack.Functional;
 
-public readonly struct Exceptional<T> : IEquatable<Exceptional<T>>
+/// <summary>
+/// Represents a computation that might succeed or fail with an exception.
+/// </summary>
+/// <typeparam name="T">The type of the result.</typeparam>
+public readonly struct Exceptional<T>
 {
-    private Exceptional([DisallowNull] T value)
+    private readonly T? _value;
+    private readonly Exception? _exception;
+
+    /// <summary>
+    /// Indicates whether the computation was successful.
+    /// </summary>
+    public bool IsSuccess { get; }
+
+    /// <summary>
+    /// Indicates whether the computation failed.
+    /// </summary>
+    public bool IsFailure => !IsSuccess;
+
+    private Exceptional(T value)
     {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        HasValue = true;
-        HasException = false;
+        _value = value ?? throw new ArgumentNullException(nameof(value));
+        _exception = default;
+        IsSuccess = true;
     }
 
     private Exceptional(Exception exception)
     {
-        Exception = exception ?? throw new ArgumentNullException(nameof(exception));
-        HasValue = false;
-        HasException = true;
+        _exception = exception ?? throw new ArgumentNullException(nameof(exception));
+        _value = default;
+        IsSuccess = false;
     }
 
-    public Exception? Exception { get; }
-    public bool HasException { get; }
-    public bool HasValue { get; }
-    public T? Value { get; }
-    public static Exceptional<T> Failure(Exception exception)
-    {
-        if (exception == null) throw new ArgumentNullException(nameof(exception));
-        return new Exceptional<T>(exception);
-    }
+    /// <summary>
+    /// Creates a successful result.
+    /// </summary>
+    /// <param name="value">The result value.</param>
+    /// <returns>An Exceptional containing the value.</returns>
+    public static Exceptional<T> Success(T value) => new(value);
 
-    public static implicit operator Exceptional<T>([DisallowNull] T value)
-    {
-        if (value == null) throw new ArgumentNullException(nameof(value));
-        return new Exceptional<T>(value);
-    }
+    /// <summary>
+    /// Creates a failed result.
+    /// </summary>
+    /// <param name="exception">The exception.</param>
+    /// <returns>An Exceptional containing the exception.</returns>
+    public static Exceptional<T> Failure(Exception exception) => new(exception);
 
-    public static implicit operator Exceptional<T>(Exception ex)
-    {
-        if (ex == null) throw new ArgumentNullException(nameof(ex));
-        return new Exceptional<T>(ex);
-    }
-
-    public static bool operator !=(Exceptional<T> left, Exceptional<T> right)
-    {
-        return !(left == right);
-    }
-
-    public static bool operator ==(Exceptional<T> left, Exceptional<T> right)
-    {
-        return left.Equals(right);
-    }
-
-    public static Exceptional<T> Success([DisallowNull] T value)
-    {
-        if (value == null) throw new ArgumentNullException(nameof(value));
-        return new Exceptional<T>(value);
-    }
-    public static Exceptional<T> TryCatch(Func<T> func)
-    {
-        if (func == null) throw new ArgumentNullException(nameof(func));
-        try
-        {
-            return new Exceptional<T>(func()!);
-        }
-        catch (Exception ex)
-        {
-            return new Exceptional<T>(ex);
-        }
-    }
-
-    public void Deconstruct(out bool hasValue, out T? value, out Exception? exception)
-    {
-        hasValue = HasValue;
-        value = Value;
-        exception = Exception;
-    }
-
-    public void Deconstruct(out T? value, out Exception? exception)
-    {
-        value = Value;
-        exception = Exception;
-    }
-
-    public bool Equals(Exceptional<T> other)
-    {
-        if (HasValue && other.HasValue)
-        {
-            return EqualityComparer<T>.Default.Equals(Value, other.Value);
-        }
-
-        if (!HasValue && !other.HasValue)
-        {
-            return Equals(Exception, other.Exception);
-        }
-
-        return false;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is Exceptional<T> other && Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        return HasValue ? Value?.GetHashCode() ?? 0 : Exception?.GetHashCode() ?? 0;
-    }
-
-    public void IfException(Action<Exception> action)
-    {
-        if (Exception is not null) action(Exception);
-    }
-
-    public void IfValue(Action<T> action)
-    {
-        if (HasValue) action(Value!);
-    }
-
-    public Exceptional<TResult> Map<TResult>(Func<T, TResult> mapper)
-    {
-        return HasValue ? Exceptional<TResult>.Success(mapper(Value!)!) : Exceptional<TResult>.Failure(Exception!);
-    }
-
-    public Exceptional<TNew> MapValue<TNew>(Func<T, TNew> mapper)
-    {
-        if (mapper == null) throw new ArgumentNullException(nameof(mapper));
-
-        return HasValue
-            ? new Exceptional<TNew>(mapper(Value!) ?? throw new InvalidOperationException())
-            : Exceptional<TNew>.Failure(Exception!);
-    }
-
+    /// <summary>
+    /// Matches the Exceptional to a value based on its state.
+    /// </summary>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    /// <param name="success">Function to execute if successful.</param>
+    /// <param name="failure">Function to execute if failed.</param>
+    /// <returns>The result of the executed function.</returns>
     public TResult Match<TResult>(Func<T, TResult> success, Func<Exception, TResult> failure)
     {
-        return HasValue ? success(Value!) : failure(Exception!);
-    }
-    public Exceptional<TResult> Select<TResult>(Func<T, TResult> selector)
-    {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        return HasValue ? Exceptional<TResult>.Success(selector(Value!)!) : Exceptional<TResult>.Failure(Exception!);
+        if (success is null) throw new ArgumentNullException(nameof(success));
+        if (failure is null) throw new ArgumentNullException(nameof(failure));
+        return IsSuccess ? success(_value!) : failure(_exception!);
     }
 
-    public Exceptional<TResult> SelectMany<TResult>(Func<T, Exceptional<TResult>> selector)
+    /// <summary>
+    /// Transforms the result value if the computation was successful.
+    /// </summary>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    /// <param name="mapper">The transformation function.</param>
+    /// <returns>An Exceptional containing the transformed value or the exception.</returns>
+    public Exceptional<TResult> Map<TResult>(Func<T, TResult> mapper)
     {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
-        return HasValue ? selector(Value!) : Exceptional<TResult>.Failure(Exception!);
+        if (mapper is null) throw new ArgumentNullException(nameof(mapper));
+        return IsSuccess ? Exceptional<TResult>.Success(mapper(_value!)) : Exceptional<TResult>.Failure(_exception!);
     }
 
-    public Exceptional<T> Tap(Action<T> action)
+    /// <summary>
+    /// Binds the result value to another Exceptional computation.
+    /// </summary>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    /// <param name="binder">The binding function.</param>
+    /// <returns>The result of the binding function or the exception.</returns>
+    public Exceptional<TResult> Bind<TResult>(Func<T, Exceptional<TResult>> binder)
     {
-        if (HasValue) action(Value!);
-        return this;
+        if (binder is null) throw new ArgumentNullException(nameof(binder));
+        return IsSuccess ? binder(_value!) : Exceptional<TResult>.Failure(_exception!);
     }
 
-    public override string ToString()
-    {
-        return HasException ? $"Exception: {Exception?.Message}" : $"Value: {Value}";
-    }
+    /// <summary>
+    /// Implicitly converts a value to an Exceptional.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    public static implicit operator Exceptional<T>(T value) => Success(value);
 
-    public Exceptional<TResult> Transform<TResult>(
-        Func<T, TResult> transformValue,
-        Func<Exception, Exception> transformException)
-    {
-        if (transformValue == null) throw new ArgumentNullException(nameof(transformValue));
-        if (transformException == null) throw new ArgumentNullException(nameof(transformException));
-        return HasValue
-            ? new Exceptional<TResult>(transformValue(Value!)!)
-            : new Exceptional<TResult>(transformException(Exception!));
-    }
+    /// <summary>
+    /// Implicitly converts an Exception to an Exceptional.
+    /// </summary>
+    /// <param name="exception">The exception.</param>
+    public static implicit operator Exceptional<T>(Exception exception) => Failure(exception);
 
-    public T ValueOrThrow()
-    {
-        if (HasValue) return Value!;
-        throw new InvalidOperationException($"No value present. Exception: {Exception?.Message}");
-    }
-    public Exceptional<T> Where(Func<T, bool> predicate)
-    {
-        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
-        return HasValue && predicate(Value!) ? this : Failure(Exception!);
-    }
+    /// <summary>
+    /// Maps the value of a successful computation to a new form using the specified selector function.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the transformed value.</typeparam>
+    /// <param name="selector">The transformation function.</param>
+    /// <returns>An <see cref="Exceptional{TResult}"/> with the transformed value or the original exception if the computation failed.</returns>
+    public Exceptional<TResult> Select<TResult>(Func<T, TResult> selector) => Map(selector);
 
-    public Exceptional<TResult> Cast<TResult>()
+    /// <summary>
+    /// Projects the value of a successful computation into a new form using the specified selector and result selector functions.
+    /// </summary>
+    /// <typeparam name="TIntermediate">The type of the intermediate computation value.</typeparam>
+    /// <typeparam name="TResult">The type of the final result value.</typeparam>
+    /// <param name="selector">The function to apply to the value to obtain the intermediate computation.</param>
+    /// <param name="resultSelector">The function to combine the value and intermediate result to obtain the final result.</param>
+    /// <returns>An <see cref="Exceptional{TResult}"/> based on the combined selector functions or the original exception if the computation failed.</returns>
+    public Exceptional<TResult> SelectMany<TIntermediate, TResult>(
+        Func<T, Exceptional<TIntermediate>> selector,
+        Func<T, TIntermediate, TResult> resultSelector)
     {
-        return HasValue && Value is TResult v
-            ? Exceptional<TResult>.Success(v)
-            : Exceptional<TResult>.Failure(Exception!);
+        return Bind(value => selector(value).Map(intermediate => resultSelector(value, intermediate)));
     }
 }
